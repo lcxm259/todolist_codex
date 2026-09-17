@@ -66,12 +66,12 @@ final class PanelController {
         isVisible ? hide() : show()
     }
 
-    func show() {
-        positionPanel()
+    func show(anchor: CGRect? = nil) {
+        positionPanel(anchor: anchor)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         NSApp.activate(ignoringOtherApps: true)
-        panel.makeKey()
+        panel.makeKeyAndOrderFront(nil)
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.16
             panel.animator().alphaValue = 1
@@ -88,9 +88,15 @@ final class PanelController {
         })
     }
 
-    private func positionPanel() {
-        let mouseLocation = NSEvent.mouseLocation
-        let screen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? NSScreen.main
+    private func positionPanel(anchor: CGRect?) {
+        let screen: NSScreen?
+        if let anchor {
+            let anchorPoint = CGPoint(x: anchor.midX, y: anchor.midY)
+            screen = NSScreen.screens.first { $0.frame.contains(anchorPoint) } ?? NSScreen.main
+        } else {
+            let mouseLocation = NSEvent.mouseLocation
+            screen = NSScreen.screens.first { $0.frame.contains(mouseLocation) } ?? NSScreen.main
+        }
         guard let screen else { return }
         let hasNotch = screen.safeAreaInsets.top > 0
             && screen.auxiliaryTopLeftArea != nil

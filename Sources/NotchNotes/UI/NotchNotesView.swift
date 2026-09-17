@@ -72,13 +72,6 @@ struct NotchNotesView: View {
 
             Spacer()
 
-            Text("⇧⌘空格")
-                .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .frame(height: 24)
-                .background(.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6))
-
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))

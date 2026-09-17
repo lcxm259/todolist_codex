@@ -7,7 +7,6 @@ displays without a notch.
 ## Features
 
 - Menu bar app with a compact floating capture panel
-- Global `Shift-Command-Space` shortcut
 - Create, edit, complete, pin, delete, search, and filter notes
 - JSON persistence in `~/Library/Application Support/NotchNotes/notes.json`
 - Automatic notch-aware positioning with a non-notch fallback
@@ -18,7 +17,7 @@ displays without a notch.
 ```bash
 swift test
 ./scripts/build-app.sh
-open "build/todo list.app"
+open build/NotchNotes.app
 ```
 
 The app is intentionally dependency-free. The build script creates and

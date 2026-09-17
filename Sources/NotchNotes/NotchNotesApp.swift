@@ -1,48 +1,101 @@
 import AppKit
-import SwiftUI
+
+@main
+enum NotchNotesApp {
+    static func main() {
+        let app = NSApplication.shared
+        let delegate = AppDelegate()
+        app.setActivationPolicy(.accessory)
+        app.delegate = delegate
+        delegate.start()
+        withExtendedLifetime(delegate) {
+            app.run()
+        }
+    }
+}
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = NoteStore()
     private var panelController: PanelController?
-    private var hotKey: GlobalHotKey?
+    private var statusItem: NSStatusItem?
+    private var didStart = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
+        start()
+    }
+
+    func start() {
+        guard !didStart else { return }
+        didStart = true
         let panelController = PanelController(store: store)
         self.panelController = panelController
-        hotKey = GlobalHotKey { [weak panelController] in
-            panelController?.toggle()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            panelController.show()
+        configureStatusItem()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            self?.showPanel()
         }
     }
 
-    func showPanel() { panelController?.show() }
-    func hidePanel() { panelController?.hide() }
-    func togglePanel() { panelController?.toggle() }
-}
+    private func showPanel(anchor button: NSStatusBarButton? = nil) {
+        panelController?.show(anchor: screenFrame(for: button))
+    }
 
-@main
-struct NotchNotesApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-
-    var body: some Scene {
-        MenuBarExtra("todo list", systemImage: "checklist") {
-            Button("打开 todo list") { appDelegate.showPanel() }
-                .keyboardShortcut("n", modifiers: [.command])
-            Button("显示/隐藏面板") { appDelegate.togglePanel() }
-            Divider()
-            Text("全局快捷键：⇧⌘空格")
-            Divider()
-            Button("退出 todo list") { NSApp.terminate(nil) }
-                .keyboardShortcut("q", modifiers: [.command])
+    private func configureStatusItem() {
+        let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        if let button = statusItem.button {
+            if let image = NSImage(systemSymbolName: "checklist", accessibilityDescription: "todo list")
+                ?? NSImage(systemSymbolName: "checkmark.circle", accessibilityDescription: "todo list") {
+                image.isTemplate = true
+                button.image = image
+                button.imagePosition = .imageLeading
+            }
+            button.title = "todo"
+            button.toolTip = "todo list"
+            button.target = self
+            button.action = #selector(statusItemClicked(_:))
+            _ = button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
-        .menuBarExtraStyle(.menu)
+        self.statusItem = statusItem
+    }
 
-        Settings {
-            Text("todo list 在菜单栏中运行。")
-                .padding()
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        guard let event = NSApp.currentEvent else {
+            showPanel(anchor: sender)
+            return
         }
+
+        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            showStatusMenu()
+        } else {
+            showPanel(anchor: sender)
+        }
+    }
+
+    private func screenFrame(for button: NSStatusBarButton?) -> CGRect? {
+        guard
+            let button,
+            let window = button.window
+        else { return nil }
+
+        return window.convertToScreen(button.convert(button.bounds, to: nil))
+    }
+
+    private func showStatusMenu() {
+        guard let statusItem else { return }
+        let menu = NSMenu()
+        let quitItem = NSMenuItem(
+            title: "退出 todo list",
+            action: #selector(quitApp),
+            keyEquivalent: "q"
+        )
+        quitItem.target = self
+        menu.addItem(quitItem)
+
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        statusItem.menu = nil
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 }
